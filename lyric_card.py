@@ -260,20 +260,8 @@ class SpotifyLyricCardEngine:
         spotify_text_x = padding + logo_width + (4 * s) # space-x-1
         draw.text((spotify_text_x, current_y), "Spotify", font=font_footer, fill=text_color)
         
-        # Finally, we want the whole card to have rounded corners (like `rounded-lg`)
-        # Create a mask for the final image
-        final_radius = 8 * s
-        mask = Image.new("L", img.size, 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.rounded_rectangle([(0,0), img.size], radius=final_radius, fill=255)
-        
-        # Create a transparent image to paste the masked card onto
-        final_img = Image.new("RGBA", img.size, (0,0,0,0))
-        img.putalpha(mask)
-        final_img.paste(img, (0,0))
-        
-        # Save as PNG to keep transparency
-        final_img.save(output_path, format="PNG")
+        # Save image directly with square (sharp) corners as requested
+        img.save(output_path, format="PNG")
         return output_path
 
 if __name__ == "__main__":
