@@ -21,6 +21,27 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 dp.include_router(router)
 
+import asyncio
+import aiohttp
+
+async def health_check(request):
+    return web.Response(text="OK - Lyric Card Maker Bot is Healthy", status=200)
+
+async def keep_alive():
+    await asyncio.sleep(15)  # wait for server to start up completely
+    while True:
+        try:
+            if WEBHOOK_URL:
+                health_url = f"{WEBHOOK_URL.rstrip('/')}/health"
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(health_url) as resp:
+                        print(f"Keep-alive self-ping to {health_url} -> Status {resp.status}")
+        except Exception as e:
+            print(f"Keep-alive self-ping exception: {e}")
+        
+        # Ping every 14 minutes (840 seconds) to prevent Render free instance cold start sleep
+        await asyncio.sleep(840)
+
 async def on_startup(bot: Bot):
     if WEBHOOK_URL:
         full_url = f"{WEBHOOK_URL.rstrip('/')}{WEBHOOK_PATH}"
@@ -29,6 +50,9 @@ async def on_startup(bot: Bot):
     else:
         print("Warning: WEBHOOK_URL not found. Webhook not set with Telegram.")
         
+    # Start keep-alive self-ping background task
+    asyncio.create_task(keep_alive())
+
     # Notify admin on new deploy
     admin_id = 430540319
     try:
@@ -48,6 +72,10 @@ dp.shutdown.register(on_shutdown)
 
 def main():
     app = web.Application()
+    
+    # Health check routes for Render & UptimeRobot pings
+    app.router.add_get("/", health_check)
+    app.router.add_get("/health", health_check)
     
     # Handle incoming webhook requests
     webhook_requests_handler = SimpleRequestHandler(
