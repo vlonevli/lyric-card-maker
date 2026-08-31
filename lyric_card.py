@@ -151,7 +151,8 @@ class SpotifyLyricCardEngine:
         artist_bbox = draw.textbbox((0, 0), artist_text, font=font_artist)
         artist_h = artist_bbox[3] - artist_bbox[1]
         
-        total_info_h = title_h + artist_h + (4 * s) # slight gap
+        title_artist_gap = int(25 * (s / 2)) # ~25px gap between title and artist
+        total_info_h = title_h + artist_h + title_artist_gap
         info_start_y = current_y + (album_size - total_info_h) // 2
         
         draw.text((text_x, info_start_y), song_title, font=font_title, fill=text_color)
@@ -164,7 +165,7 @@ class SpotifyLyricCardEngine:
         # Create a transparent overlay for artist text to support alpha
         overlay = Image.new("RGBA", img.size, (255,255,255,0))
         overlay_draw = ImageDraw.Draw(overlay)
-        overlay_draw.text((text_x, info_start_y + title_h + (4 * s)), artist_text, font=font_artist, fill=artist_tc)
+        overlay_draw.text((text_x, info_start_y + title_h + title_artist_gap), artist_text, font=font_artist, fill=artist_tc)
         img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
         draw = ImageDraw.Draw(img) # Refresh draw object
         
