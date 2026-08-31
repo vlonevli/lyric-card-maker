@@ -30,21 +30,35 @@ class SpotifyLyricCardEngine:
         self.font_semibold = os.path.join(self.assets_dir, "Manrope-SemiBold.ttf")
         self.font_bold = os.path.join(self.assets_dir, "Manrope-Bold.ttf")
 
+    def _has_rtl(self, text):
+        if not text or not isinstance(text, str):
+            return False
+        return any('\u0600' <= c <= '\u06FF' or '\u0750' <= c <= '\u077F' or '\u08A0' <= c <= '\u08FF' or '\uFB50' <= c <= '\uFDFF' or '\uFE70' <= c <= '\uFEFF' for c in text)
+
     def _reshape(self, text):
         if not text or not isinstance(text, str):
             return text
-        if HAS_RTL:
-            # Check for Arabic/Persian Unicode characters
-            if any('\u0600' <= c <= '\u06FF' or '\u0750' <= c <= '\u077F' or '\u08A0' <= c <= '\u08FF' or '\uFB50' <= c <= '\uFDFF' or '\uFE70' <= c <= '\uFEFF' for c in text):
-                reshaped = arabic_reshaper.reshape(text)
-                return get_display(reshaped)
+        if HAS_RTL and self._has_rtl(text):
+            reshaped = arabic_reshaper.reshape(text)
+            return get_display(reshaped)
         return text
 
-    def _get_font(self, font_path, size):
+    def _get_font(self, font_path, size, text=""):
+        if self._has_rtl(text):
+            if "Bold" in font_path:
+                vazir_name = "Vazirmatn-Bold.ttf"
+            elif "SemiBold" in font_path:
+                vazir_name = "Vazirmatn-SemiBold.ttf"
+            else:
+                vazir_name = "Vazirmatn-Regular.ttf"
+            
+            vazir_path = os.path.join(self.assets_dir, vazir_name)
+            if os.path.exists(vazir_path):
+                font_path = vazir_path
+
         try:
             return ImageFont.truetype(font_path, size)
         except IOError:
-            # If Manrope fails, use Windows default TrueType fonts so size actually works
             try:
                 if "Bold" in font_path:
                     return ImageFont.truetype(r"C:\Windows\Fonts\segoeuib.ttf", size)
@@ -79,10 +93,10 @@ class SpotifyLyricCardEngine:
         padding = 24 * s
         width = self.base_width * s
         
-        # Fonts setup
-        font_title = self._get_font(self.font_bold, 16 * s)
-        font_artist = self._get_font(self.font_bold, 11 * s) # bold instead of regular since uppercase opacity 80
-        font_lyrics = self._get_font(self.font_semibold, 20 * s)
+        # Fonts setup (pass target text to auto-select Vazirmatn for Farsi/Arabic)
+        font_title = self._get_font(self.font_bold, 16 * s, text=song_title)
+        font_artist = self._get_font(self.font_bold, 11 * s, text=artist)
+        font_lyrics = self._get_font(self.font_semibold, 20 * s, text=str(lyrics))
         font_footer = self._get_font(self.font_semibold, 14 * s)
         
         # Calculate Height dynamically based on lyrics
