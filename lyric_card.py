@@ -9,9 +9,20 @@ except ImportError:
     HAS_RTL = False
 
 class SpotifyLyricCardEngine:
-    def __init__(self, assets_dir="assets", scale=2):
-        # We'll expect assets in the parent directory as user specified F:\BOTS AI\Lyric card maker\assets
-        self.assets_dir = r"F:\BOTS AI\Lyric card maker\assets"
+    def __init__(self, assets_dir=None, scale=2):
+        if assets_dir is None:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            possible_dirs = [
+                os.path.join(script_dir, "assets"),
+                os.path.join(os.path.dirname(script_dir), "assets"),
+                r"F:\BOTS AI\Lyric card maker\assets"
+            ]
+            assets_dir = "assets"
+            for d in possible_dirs:
+                if os.path.exists(d):
+                    assets_dir = d
+                    break
+        self.assets_dir = assets_dir
         self.scale = scale
         self.base_width = 350
         

@@ -11,7 +11,7 @@ from mutagen.id3 import ID3, APIC
 from lyric_card import SpotifyLyricCardEngine
 
 router = Router()
-engine = SpotifyLyricCardEngine(scale=1)
+engine = SpotifyLyricCardEngine(scale=2)
 
 def extract_metadata(mp3_path, output_cover_dir="temp"):
     title = "Unknown Song"
