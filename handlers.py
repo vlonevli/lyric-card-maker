@@ -47,8 +47,8 @@ def generate_image_sync(song_title, artist, lyrics, cover_path, user_id):
         artist=artist,
         album_art_path=cover_path,
         output_path=output_path,
-        color1="#121212", # Default dark gradient for now, can be randomized or picked
-        color2="#000000",
+        color1=None, # Auto-extract matching rich dark gradient from album cover art!
+        color2=None,
         text_color="#ffffff"
     )
 

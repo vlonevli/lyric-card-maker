@@ -67,6 +67,29 @@ class SpotifyLyricCardEngine:
             except:
                 return ImageFont.load_default()
 
+    def _extract_dominant_gradient(self, album_art_path):
+        default_c1 = "#200407"
+        default_c2 = "#050102"
+        if not album_art_path or not os.path.exists(album_art_path):
+            return default_c1, default_c2
+        try:
+            img = Image.open(album_art_path).convert("RGB")
+            small = img.resize((32, 32))
+            pixels = list(small.getdata())
+            avg_r = sum(p[0] for p in pixels) // len(pixels)
+            avg_g = sum(p[1] for p in pixels) // len(pixels)
+            avg_b = sum(p[2] for p in pixels) // len(pixels)
+            
+            c1_r, c1_g, c1_b = int(avg_r * 0.5), int(avg_g * 0.5), int(avg_b * 0.5)
+            c2_r, c2_g, c2_b = int(avg_r * 0.15), int(avg_g * 0.15), int(avg_b * 0.15)
+            
+            c1_hex = f"#{c1_r:02x}{c1_g:02x}{c1_b:02x}"
+            c2_hex = f"#{c2_r:02x}{c2_g:02x}{c2_b:02x}"
+            return c1_hex, c2_hex
+        except Exception as e:
+            print(f"Error extracting gradient color: {e}")
+            return default_c1, default_c2
+
     def _draw_rounded_rectangle(self, draw, bounds, radius, fill):
         # A simple rounded rectangle function for PIL
         draw.rounded_rectangle(bounds, radius=radius, fill=fill)
@@ -85,19 +108,24 @@ class SpotifyLyricCardEngine:
         return base
 
     def generate_card(self, lyrics, song_title, artist, album_art_path=None, 
-                      color1="#000000", color2="#290c5e", text_color="#ffffff",
+                      color1=None, color2=None, text_color="#ffffff",
                       output_path="lyric_card.png"):
         s = self.scale
+        
+        if color1 is None or color2 is None:
+            extracted_c1, extracted_c2 = self._extract_dominant_gradient(album_art_path)
+            color1 = color1 or extracted_c1
+            color2 = color2 or extracted_c2
         
         # Dimensions and Layout Specs (scaled)
         padding = 24 * s
         width = self.base_width * s
         
-        # Fonts setup (pass target text to auto-select Vazirmatn for Farsi/Arabic)
-        font_title = self._get_font(self.font_bold, 16 * s, text=song_title)
-        font_artist = self._get_font(self.font_bold, 11 * s, text=artist)
-        font_lyrics = self._get_font(self.font_semibold, 20 * s, text=str(lyrics))
-        font_footer = self._get_font(self.font_semibold, 14 * s)
+        # Fonts setup (heavy bold typography matching premium Spotify design)
+        font_title = self._get_font(self.font_bold, 18 * s, text=song_title)
+        font_artist = self._get_font(self.font_bold, 12 * s, text=artist)
+        font_lyrics = self._get_font(self.font_bold, 24 * s, text=str(lyrics))
+        font_footer = self._get_font(self.font_bold, 14 * s)
         
         # Calculate Height dynamically based on lyrics
         # We need to wrap lyrics (whitespace-pre-wrap in React)
@@ -137,7 +165,7 @@ class SpotifyLyricCardEngine:
             lyric_lines_wrapped.append(current_line)
             
         # Line height
-        line_height = int(20 * s * 1.375) # leading-snug
+        line_height = int(24 * s * 1.35)
         lyrics_block_height = len(lyric_lines_wrapped) * line_height
         
         # Calculate total card height
@@ -260,8 +288,17 @@ class SpotifyLyricCardEngine:
         spotify_text_x = padding + logo_width + (4 * s) # space-x-1
         draw.text((spotify_text_x, current_y), "Spotify", font=font_footer, fill=text_color)
         
-        # Save image directly with square (sharp) corners as requested
-        img.save(output_path, format="PNG")
+        # Rounded container corners matching premium Spotify card design
+        final_radius = 12 * s
+        mask = Image.new("L", img.size, 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.rounded_rectangle([(0,0), img.size], radius=final_radius, fill=255)
+        
+        final_img = Image.new("RGBA", img.size, (0,0,0,0))
+        img.putalpha(mask)
+        final_img.paste(img, (0,0))
+        
+        final_img.save(output_path, format="PNG")
         return output_path
 
 if __name__ == "__main__":
