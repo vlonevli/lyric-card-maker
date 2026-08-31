@@ -65,7 +65,7 @@ async def on_startup(bot: Bot):
         print(f"Failed to send deploy notification: {e}")
 
 async def on_shutdown(bot: Bot):
-    await bot.delete_webhook(drop_pending_updates=True)
+    print("Server shutting down...")
 
 dp.startup.register(on_startup)
 dp.shutdown.register(on_shutdown)
