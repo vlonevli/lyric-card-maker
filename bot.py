@@ -8,8 +8,8 @@ from handlers import router
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # e.g. https://your-app-name.onrender.com
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8875587251:AAHlpEekPAbsrsqmc9_FWNeLnJ4b8jmJhKw")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://lyric-card-maker.onrender.com")
 PORT = int(os.getenv("PORT", 10000))    # Render provides the PORT env variable
 WEBHOOK_PATH = "/webhook"
 
@@ -31,11 +31,10 @@ async def keep_alive():
     await asyncio.sleep(15)  # wait for server to start up completely
     while True:
         try:
-            if WEBHOOK_URL:
-                health_url = f"{WEBHOOK_URL.rstrip('/')}/health"
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(health_url) as resp:
-                        print(f"Keep-alive self-ping to {health_url} -> Status {resp.status}")
+            health_url = f"{WEBHOOK_URL.rstrip('/')}/health"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(health_url) as resp:
+                    print(f"Keep-alive self-ping to {health_url} -> Status {resp.status}")
         except Exception as e:
             print(f"Keep-alive self-ping exception: {e}")
         
@@ -43,12 +42,12 @@ async def keep_alive():
         await asyncio.sleep(840)
 
 async def on_startup(bot: Bot):
-    if WEBHOOK_URL:
-        full_url = f"{WEBHOOK_URL.rstrip('/')}{WEBHOOK_PATH}"
-        await bot.set_webhook(full_url)
+    full_url = f"{WEBHOOK_URL.rstrip('/')}{WEBHOOK_PATH}"
+    try:
+        await bot.set_webhook(url=full_url, drop_pending_updates=False)
         print(f"Webhook successfully set to {full_url}")
-    else:
-        print("Warning: WEBHOOK_URL not found. Webhook not set with Telegram.")
+    except Exception as e:
+        print(f"Failed to set webhook: {e}")
         
     # Start keep-alive self-ping background task
     asyncio.create_task(keep_alive())
