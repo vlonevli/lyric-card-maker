@@ -1,6 +1,13 @@
 import os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    HAS_RTL = True
+except ImportError:
+    HAS_RTL = False
+
 class SpotifyLyricCardEngine:
     def __init__(self, assets_dir="assets", scale=2):
         # We'll expect assets in the parent directory as user specified F:\BOTS AI\Lyric card maker\assets
@@ -11,6 +18,16 @@ class SpotifyLyricCardEngine:
         self.font_regular = os.path.join(self.assets_dir, "Manrope-Regular.ttf")
         self.font_semibold = os.path.join(self.assets_dir, "Manrope-SemiBold.ttf")
         self.font_bold = os.path.join(self.assets_dir, "Manrope-Bold.ttf")
+
+    def _reshape(self, text):
+        if not text or not isinstance(text, str):
+            return text
+        if HAS_RTL:
+            # Check for Arabic/Persian Unicode characters
+            if any('\u0600' <= c <= '\u06FF' or '\u0750' <= c <= '\u077F' or '\u08A0' <= c <= '\u08FF' or '\uFB50' <= c <= '\uFDFF' or '\uFE70' <= c <= '\uFEFF' for c in text):
+                reshaped = arabic_reshaper.reshape(text)
+                return get_display(reshaped)
+        return text
 
     def _get_font(self, font_path, size):
         try:
@@ -83,8 +100,9 @@ class SpotifyLyricCardEngine:
             
             current_line = words[0]
             for word in words[1:]:
-                # Check width
-                bbox = draw_measure.textbbox((0, 0), current_line + " " + word, font=font_lyrics)
+                # Check width of reshaped text
+                test_str = self._reshape(current_line + " " + word)
+                bbox = draw_measure.textbbox((0, 0), test_str, font=font_lyrics)
                 w = bbox[2] - bbox[0]
                 if w <= max_text_width:
                     current_line += " " + word
@@ -141,21 +159,23 @@ class SpotifyLyricCardEngine:
         # Draw Song Info
         text_x = padding + album_size + (16 * s) # space-x-4
         
+        reshaped_title = self._reshape(song_title)
+        reshaped_artist = self._reshape(artist.upper())
+        
         # Center text vertically relative to album art
         # Title
-        title_bbox = draw.textbbox((0, 0), song_title, font=font_title)
+        title_bbox = draw.textbbox((0, 0), reshaped_title, font=font_title)
         title_h = title_bbox[3] - title_bbox[1]
         
         # Artist
-        artist_text = artist.upper()
-        artist_bbox = draw.textbbox((0, 0), artist_text, font=font_artist)
+        artist_bbox = draw.textbbox((0, 0), reshaped_artist, font=font_artist)
         artist_h = artist_bbox[3] - artist_bbox[1]
         
         title_artist_gap = int(25 * (s / 2)) # ~25px gap between title and artist
         total_info_h = title_h + artist_h + title_artist_gap
         info_start_y = current_y + (album_size - total_info_h) // 2
         
-        draw.text((text_x, info_start_y), song_title, font=font_title, fill=text_color)
+        draw.text((text_x, info_start_y), reshaped_title, font=font_title, fill=text_color)
         
         # Artist text has 80% opacity
         # Convert hex to RGBA text_color with 80% alpha (204)
@@ -165,7 +185,7 @@ class SpotifyLyricCardEngine:
         # Create a transparent overlay for artist text to support alpha
         overlay = Image.new("RGBA", img.size, (255,255,255,0))
         overlay_draw = ImageDraw.Draw(overlay)
-        overlay_draw.text((text_x, info_start_y + title_h + title_artist_gap), artist_text, font=font_artist, fill=artist_tc)
+        overlay_draw.text((text_x, info_start_y + title_h + title_artist_gap), reshaped_artist, font=font_artist, fill=artist_tc)
         img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
         draw = ImageDraw.Draw(img) # Refresh draw object
         
@@ -173,7 +193,8 @@ class SpotifyLyricCardEngine:
         current_y += album_size + margin_top_lyrics
         
         for line in lyric_lines_wrapped:
-            draw.text((padding, current_y), line, font=font_lyrics, fill=text_color)
+            reshaped_line = self._reshape(line)
+            draw.text((padding, current_y), reshaped_line, font=font_lyrics, fill=text_color)
             current_y += line_height
             
         # 4. Draw Footer
