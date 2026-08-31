@@ -3,17 +3,32 @@ from lyric_card import SpotifyLyricCardEngine
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC
 
-def extract_cover(mp3_path, output_jpg):
+def extract_metadata(mp3_path):
+    title = "Unknown Song"
+    artist = "Unknown Artist"
+    cover_path = "cover.jpg"
+    extracted_cover = None
+    
     try:
         audio = MP3(mp3_path, ID3=ID3)
-        for tag in audio.tags.values():
-            if isinstance(tag, APIC):
-                with open(output_jpg, 'wb') as img:
-                    img.write(tag.data)
-                return output_jpg
+        if audio.tags:
+            # Title
+            if 'TIT2' in audio.tags:
+                title = str(audio.tags['TIT2'])
+            # Artist
+            if 'TPE1' in audio.tags:
+                artist = str(audio.tags['TPE1'])
+            # Cover
+            for tag in audio.tags.values():
+                if isinstance(tag, APIC):
+                    with open(cover_path, 'wb') as img:
+                        img.write(tag.data)
+                    extracted_cover = cover_path
+                    break
     except Exception as e:
-        print(f"Failed to extract cover: {e}")
-    return None
+        print(f"Error reading metadata: {e}")
+        
+    return title, artist, extracted_cover
 
 def main():
     engine = SpotifyLyricCardEngine(scale=2)
@@ -24,28 +39,28 @@ def main():
     if not sample_lyrics:
         sample_lyrics = "No lyrics found."
 
-    song = "Young Metro"
-    artist = "Future, Metro Boomin, The Weeknd"
-    mp3_file = "Future - Young Metro.mp3"
-    cover_file = "cover.jpg"
+    mp3_file = "sample.mp3"
     
-    # Extract cover
-    extracted = extract_cover(mp3_file, cover_file)
+    if os.path.exists(mp3_file):
+        song, artist, extracted = extract_metadata(mp3_file)
+    else:
+        song = "Young Metro"
+        artist = "Future, Metro Boomin, The Weeknd"
+        extracted = None
     
-    print("Generating sample lyric card for Future - Young Metro...")
+    print(f"Generating lyric card for '{song}' by '{artist}' from {mp3_file}...")
     
-    # Generate default
-    output_file1 = engine.generate_card(
+    output_file = engine.generate_card(
         lyrics=sample_lyrics,
         song_title=song,
         artist=artist,
         album_art_path=extracted,
-        output_path="lyricize_sample_future.png",
-        color1="#2a0000",
+        output_path="lyricize_sample_mp3.png",
+        color1="#121212",
         color2="#000000", 
         text_color="#ffffff"
     )
-    print(f"Generated: {output_file1}")
+    print(f"Generated: {output_file}")
 
 if __name__ == "__main__":
     main()
