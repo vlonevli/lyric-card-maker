@@ -1,6 +1,7 @@
+.env
+temp/
 __pycache__/
 *.pyc
 *.mp3
+*.png
 *.jpg
-lyricize_sample*.png
-assets/
