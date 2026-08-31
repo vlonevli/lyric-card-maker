@@ -56,8 +56,8 @@ def main():
         artist=artist,
         album_art_path=extracted,
         output_path="lyricize_sample_mp3.png",
-        color1="#121212",
-        color2="#000000", 
+        color1=None,
+        color2=None, 
         text_color="#ffffff"
     )
     print(f"Generated: {output_file}")
