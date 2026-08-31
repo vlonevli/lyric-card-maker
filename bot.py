@@ -28,6 +28,17 @@ async def on_startup(bot: Bot):
         print(f"Webhook successfully set to {full_url}")
     else:
         print("Warning: WEBHOOK_URL not found. Webhook not set with Telegram.")
+        
+    # Notify admin on new deploy
+    admin_id = 430540319
+    try:
+        await bot.send_message(
+            chat_id=admin_id, 
+            text="🚀 Successfully deployed a new version of Lyric Card Maker Bot!"
+        )
+        print(f"Deploy notification sent to user {admin_id}")
+    except Exception as e:
+        print(f"Failed to send deploy notification: {e}")
 
 async def on_shutdown(bot: Bot):
     await bot.delete_webhook(drop_pending_updates=True)
