@@ -9,7 +9,7 @@ from handlers import router
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8875587251:AAHlpEekPAbsrsqmc9_FWNeLnJ4b8jmJhKw")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://lyric-card-maker.onrender.com")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://lyric-card-maker-1.onrender.com")
 PORT = int(os.getenv("PORT", 10000))    # Render provides the PORT env variable
 WEBHOOK_PATH = "/webhook"
 
@@ -42,9 +42,16 @@ async def keep_alive():
         await asyncio.sleep(840)
 
 async def on_startup(bot: Bot):
+    # Give aiohttp web server 3 seconds to complete port binding on Render before setting webhook
+    await asyncio.sleep(3)
+    
     full_url = f"{WEBHOOK_URL.rstrip('/')}{WEBHOOK_PATH}"
     try:
-        await bot.set_webhook(url=full_url, drop_pending_updates=False)
+        await bot.set_webhook(
+            url=full_url, 
+            drop_pending_updates=False,
+            allowed_updates=["message", "callback_query"]
+        )
         print(f"Webhook successfully set to {full_url}")
     except Exception as e:
         print(f"Failed to set webhook: {e}")
